@@ -2,47 +2,38 @@
     import { createEventDispatcher } from 'svelte';
     import { Button } from "$lib/components/ui/button";
     import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card";
+    import type { RankingAlgorithm } from "$lib/ranking";
+    import { InsertionSortRanking } from "$lib/ranking";
 
     interface Props {
         items: Array<string>;
+        algorithm?: RankingAlgorithm;
     }
 
-    let { items }: Props = $props();
+    let { items, algorithm = new InsertionSortRanking() }: Props = $props();
 
     const dispatch = createEventDispatcher<{
         back: void;
         complete: { rankedItems: string[] };
     }>();
 
-    // Ranking state
-    let remainingItems = $state([...items]);
-    let rankedItems = $state<string[]>([]);
     let currentPair = $state<[string, string] | null>(null);
-    let round = $state(1);
 
-    // Initialize first comparison
+    // Initialize algorithm when items change
     $effect(() => {
-        if (items.length > 0 && remainingItems.length >= 2 && !currentPair) {
-            currentPair = [remainingItems[0], remainingItems[1]];
+        if (items.length > 0) {
+            algorithm.initialize(items);
+            updateCurrentPair();
         }
     });
 
+    function updateCurrentPair() {
+        currentPair = algorithm.getNextComparison();
+    }
+
     function handleChoice(winner: string, loser: string) {
-        // Add winner to ranked list
-        rankedItems = [...rankedItems, winner];
-
-        // Remove both from remaining items
-        const newRemaining = remainingItems.filter(item => item !== winner && item !== loser);
-        remainingItems = newRemaining;
-
-        // If we still have items to compare, set up next pair
-        if (newRemaining.length > 0) {
-            currentPair = [winner, newRemaining[0]];
-            round++;
-        } else {
-            // Ranking complete
-            currentPair = null;
-        }
+        algorithm.submitComparison(winner, loser);
+        updateCurrentPair();
     }
 
     function handleBack() {
@@ -50,7 +41,7 @@
     }
 
     function handleComplete() {
-        dispatch('complete', { rankedItems });
+        dispatch('complete', { rankedItems: algorithm.getRankedItems() });
     }
 </script>
 
@@ -59,7 +50,7 @@
         <CardTitle>Rank Your Items</CardTitle>
         <CardDescription>
             {#if currentPair}
-                Round {round}: Choose which item you prefer
+                {algorithm.getCurrentState()}
             {:else}
                 Ranking complete! Here are your ranked items.
             {/if}
@@ -90,14 +81,14 @@
                     </Button>
                 </div>
                 <div class="text-center text-sm text-muted-foreground">
-                    {remainingItems.length - 1} comparisons remaining
+                    Progress: {algorithm.getProgress()}%
                 </div>
             </div>
-        {:else if rankedItems.length > 0}
+        {:else if algorithm.getRankedItems().length > 0}
             <div class="space-y-4">
                 <p class="text-center text-lg font-medium">Your ranked list:</p>
                 <ol class="space-y-2">
-                    {#each rankedItems as item, index}
+                    {#each algorithm.getRankedItems() as item, index}
                         <li class="p-4 bg-muted rounded-md border text-center">
                             <span class="text-2xl font-bold text-primary">#{index + 1}</span>
                             <span class="ml-3 text-lg">{item}</span>
