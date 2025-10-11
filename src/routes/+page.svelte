@@ -2,9 +2,11 @@
     import ThemeToggle from "../components/theme-toggle.svelte";
     import Step1 from "./Step1.svelte";
     import Step2 from "./Step2.svelte";
+    import Step3 from "./Step3.svelte";
 
     let inputText = $state("");
     let items = $state<Array<string>>([]);
+    let rankedItems = $state<Array<string>>([]);
     let currentStep = $state(1);
 
     function handleProcess(event: CustomEvent<{ inputText: string }>) {
@@ -18,7 +20,16 @@
     }
 
     function handleBack() {
-        currentStep = 1;
+        currentStep = Math.max(1, currentStep - 1);
+    }
+
+    function handleContinue() {
+        currentStep = 3;
+    }
+
+    function handleRankingComplete(event: CustomEvent<{ rankedItems: string[] }>) {
+        rankedItems = event.detail.rankedItems;
+        currentStep = 4; // Could add a final results screen
     }
 </script>
 
@@ -30,6 +41,8 @@
     {#if currentStep === 1}
         <Step1 {inputText} on:process={handleProcess} />
     {:else if currentStep === 2}
-        <Step2 {items} on:back={handleBack} />
+        <Step2 {items} on:back={handleBack} on:continue={handleContinue} />
+    {:else if currentStep === 3}
+        <Step3 {items} on:back={handleBack} on:complete={handleRankingComplete} />
     {/if}
 </div>

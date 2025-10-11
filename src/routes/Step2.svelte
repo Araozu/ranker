@@ -11,6 +11,7 @@
 
     const dispatch = createEventDispatcher<{
         back: void;
+        continue: void;
     }>();
 
     function handleBack() {
@@ -40,7 +41,9 @@
             <Button onclick={handleBack} variant="outline">
                 Back to Input
             </Button>
-            <!-- Next screen button will be added in future prompts -->
+            <Button onclick={() => dispatch('continue')}>
+                Start Ranking
+            </Button>
         </div>
     </CardContent>
 </Card>
