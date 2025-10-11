@@ -3,7 +3,7 @@
     import Step1 from "./Step1.svelte";
     import Step2 from "./Step2.svelte";
     import Step3 from "./Step3.svelte";
-    import { InsertionSortRanking } from "$lib/ranking";
+    import { InsertionSortRanking, MergeSortRanking } from "$lib/ranking";
 
     let inputText = $state("");
     let items = $state<Array<string>>([]);
@@ -11,7 +11,7 @@
     let currentStep = $state(1);
 
     // Initialize ranking algorithm
-    let rankingAlgorithm = new InsertionSortRanking();
+    let rankingAlgorithm = new MergeSortRanking();
 
     function handleProcess(event: CustomEvent<{ inputText: string }>) {
         const processedItems = event.detail.inputText

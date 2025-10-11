@@ -1,4 +1,5 @@
 import type { RankingAlgorithm } from './RankingAlgorithm';
+import { shuffleArray } from '../../utils';
 
 /**
  * Abstract base class for ranking algorithms
@@ -8,7 +9,8 @@ export abstract class AbstractRankingAlgorithm implements RankingAlgorithm {
   protected rankedItems: string[] = [];
 
   initialize(items: string[]): void {
-    this.items = [...items];
+    // Shuffle the input items to randomize the comparison order
+    this.items = shuffleArray([...items]);
     this.rankedItems = [];
     this.reset();
   }
@@ -17,7 +19,8 @@ export abstract class AbstractRankingAlgorithm implements RankingAlgorithm {
   abstract submitComparison(winner: string, loser: string): void;
 
   getRankedItems(): string[] {
-    return [...this.rankedItems];
+    // Return items in reverse order so the most preferred (best) item appears first
+    return [...this.rankedItems].reverse();
   }
 
   abstract isComplete(): boolean;
