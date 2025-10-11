@@ -21,7 +21,7 @@ export function createRankingAlgorithm(name: 'insertion-sort' | 'merge-sort'): i
  */
 export const RANKING_ALGORITHMS = {
   'insertion-sort': 'Insertion Sort',
-  'merge-sort': 'Merge Sort (Tournament)',
+  'merge-sort': 'Merge Sort',
 } as const;
 
 export type RankingAlgorithmName = keyof typeof RANKING_ALGORITHMS;

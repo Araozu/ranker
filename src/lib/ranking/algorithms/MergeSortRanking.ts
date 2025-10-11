@@ -1,90 +1,148 @@
 import { AbstractRankingAlgorithm } from './AbstractRankingAlgorithm';
 
 /**
- * Merge sort ranking algorithm using tournament elimination
+ * Merge sort ranking algorithm
  *
- * This algorithm sorts items using a single-elimination tournament approach:
- * 1. Items compete in rounds, with winners advancing to the next round
- * 2. Losers are eliminated and ranked based on their round of elimination
- * 3. Items eliminated in later rounds are ranked higher
- * 4. The final winner is ranked highest
+ * This algorithm sorts items using the merge sort approach:
+ * 1. Start with individual items as sorted sublists of size 1
+ * 2. Merge adjacent pairs of sublists to create larger sorted sublists
+ * 3. Repeat until one fully sorted list remains
+ * 4. Each merge step involves pairwise comparisons between elements from sublists
  */
 export class MergeSortRanking extends AbstractRankingAlgorithm {
-  private currentRound: string[] = [];
-  private nextRound: string[] = [];
-  private roundNumber: number = 0;
+  private sublists: string[][] = [];
+  private mergeIndices: number[] = []; // Current position in each sublist during merge
+  private mergingLists: [number, number] | null = null; // Indices of sublists being merged
+  private outputList: string[] = []; // Current merged result
 
   protected reset(): void {
-    this.currentRound = [...this.items];
-    this.nextRound = [];
-    this.roundNumber = 1;
+    // Start with each item as its own sorted sublist
+    this.sublists = this.items.map(item => [item]);
+    this.mergeIndices = [];
+    this.mergingLists = null;
+    this.outputList = [];
     this.rankedItems = [];
   }
 
   getNextComparison(): [string, string] | null {
-    // If current round is empty, move to next round
-    if (this.currentRound.length === 0) {
-      if (this.nextRound.length > 1) {
-        // Start next round with winners from previous round
-        this.currentRound = [...this.nextRound];
-        this.nextRound = [];
-        this.roundNumber++;
-      } else if (this.nextRound.length === 1) {
-        // Tournament complete - final winner
-        this.rankedItems.unshift(this.nextRound[0]);
-        this.nextRound = [];
-        return null;
-      } else {
-        // Tournament complete
-        return null;
+    // If we're in the middle of merging two sublists
+    if (this.mergingLists) {
+      const [leftIdx, rightIdx] = this.mergingLists;
+      const leftList = this.sublists[leftIdx];
+      const rightList = this.sublists[rightIdx];
+
+      // Get current positions in each list
+      const leftPos = this.mergeIndices[leftIdx] || 0;
+      const rightPos = this.mergeIndices[rightIdx] || 0;
+
+      // If we've exhausted one list, take from the other
+      if (leftPos >= leftList.length) {
+        this.outputList.push(rightList[rightPos]);
+        this.mergeIndices[rightIdx] = rightPos + 1;
+        return this.continueMerge();
+      }
+      if (rightPos >= rightList.length) {
+        this.outputList.push(leftList[leftPos]);
+        this.mergeIndices[leftIdx] = leftPos + 1;
+        return this.continueMerge();
+      }
+
+      // Compare next elements from each list
+      return [leftList[leftPos], rightList[rightPos]];
+    }
+
+    // Find the next pair of sublists to merge
+    for (let i = 0; i < this.sublists.length - 1; i += 2) {
+      if (this.sublists[i] && this.sublists[i + 1]) {
+        // Start merging these two sublists
+        this.mergingLists = [i, i + 1];
+        this.mergeIndices = [];
+        this.outputList = [];
+        return this.getNextComparison();
       }
     }
 
-    // If only one item left in current round, it advances automatically
-    if (this.currentRound.length === 1) {
-      const autoAdvance = this.currentRound.shift()!;
-      this.nextRound.push(autoAdvance);
-      return this.getNextComparison(); // Recursively continue
+    // If we get here, all merging is complete
+    if (this.sublists.length === 1) {
+      // Final sorted list is complete
+      this.rankedItems = [...this.sublists[0]];
+      return null;
     }
 
-    // Return next pair for comparison
-    return [this.currentRound[0], this.currentRound[1]];
+    return null;
   }
 
   submitComparison(winner: string, loser: string): void {
+    if (!this.mergingLists) {
+      throw new Error('No active merge operation');
+    }
+
     this.validateComparison(winner, loser);
 
-    // Remove both items from current round
-    this.currentRound = this.currentRound.filter(item => item !== winner && item !== loser);
+    const [leftIdx, rightIdx] = this.mergingLists;
+    const leftList = this.sublists[leftIdx];
+    const rightList = this.sublists[rightIdx];
 
-    // Winner advances to next round
-    this.nextRound.push(winner);
+    const leftPos = this.mergeIndices[leftIdx] || 0;
+    const rightPos = this.mergeIndices[rightIdx] || 0;
 
-    // Loser is eliminated - add to ranked list (losers from later rounds rank higher)
-    this.rankedItems.push(loser);
+    // Determine which list the winner came from and add it to output
+    if (winner === leftList[leftPos]) {
+      this.outputList.push(winner);
+      this.mergeIndices[leftIdx] = leftPos + 1;
+    } else if (winner === rightList[rightPos]) {
+      this.outputList.push(winner);
+      this.mergeIndices[rightIdx] = rightPos + 1;
+    } else {
+      throw new Error('Winner not found in current merge positions');
+    }
+  }
+
+  private continueMerge(): [string, string] | null {
+    if (!this.mergingLists) return null;
+
+    const [leftIdx, rightIdx] = this.mergingLists;
+    const leftList = this.sublists[leftIdx];
+    const rightList = this.sublists[rightIdx];
+
+    const leftPos = this.mergeIndices[leftIdx] || 0;
+    const rightPos = this.mergeIndices[rightIdx] || 0;
+
+    // Check if merge is complete
+    if (leftPos >= leftList.length && rightPos >= rightList.length) {
+      // Replace the two sublists with the merged result
+      this.sublists.splice(leftIdx, 2, this.outputList);
+      this.mergingLists = null;
+      this.mergeIndices = [];
+
+      // Continue with next merge
+      return this.getNextComparison();
+    }
+
+    // Continue current merge
+    return this.getNextComparison();
   }
 
   isComplete(): boolean {
-    return this.currentRound.length === 0 && this.nextRound.length === 0;
+    return this.sublists.length === 1 && this.sublists[0].length === this.items.length;
   }
 
   getCurrentState(): string {
     if (this.isComplete()) {
-      return 'Tournament complete - all items ranked';
+      return 'Merge sort complete - all items ranked';
     }
 
-    if (this.currentRound.length === 0) {
-      return `Advancing ${this.nextRound.length} winners to round ${this.roundNumber + 1}`;
+    if (this.mergingLists) {
+      const [leftIdx, rightIdx] = this.mergingLists;
+      const leftSize = this.sublists[leftIdx].length;
+      const rightSize = this.sublists[rightIdx].length;
+      const leftPos = this.mergeIndices[leftIdx] || 0;
+      const rightPos = this.mergeIndices[rightIdx] || 0;
+
+      return `Merging sublists of size ${leftSize} and ${rightSize} (position ${leftPos + rightPos + 1}/${leftSize + rightSize})`;
     }
 
-    if (this.currentRound.length === 1) {
-      return `Round ${this.roundNumber}: "${this.currentRound[0]}" advances automatically`;
-    }
-
-    if (this.currentRound.length === 2) {
-      return `Round ${this.roundNumber} final: "${this.currentRound[0]}" vs "${this.currentRound[1]}"`;
-    }
-
-    return `Round ${this.roundNumber}: ${this.currentRound.length} competitors remaining`;
+    const maxSize = Math.max(...this.sublists.map(list => list.length));
+    return `Merging sublists up to size ${maxSize}`;
   }
 }
