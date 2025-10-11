@@ -1,4 +1,5 @@
 import { AbstractRankingAlgorithm } from './AbstractRankingAlgorithm';
+import type { RankedItem } from './RankingAlgorithm';
 
 /**
  * Merge sort ranking algorithm
@@ -10,10 +11,10 @@ import { AbstractRankingAlgorithm } from './AbstractRankingAlgorithm';
  * 4. Each merge step involves pairwise comparisons between elements from sublists
  */
 export class MergeSortRanking extends AbstractRankingAlgorithm {
-  private sublists: string[][] = [];
+  private sublists: RankedItem[][] = [];
   private mergeIndices: number[] = []; // Current position in each sublist during merge
   private mergingLists: [number, number] | null = null; // Indices of sublists being merged
-  private outputList: string[] = []; // Current merged result
+  private outputList: RankedItem[] = []; // Current merged result
 
   protected reset(): void {
     // Start with each item as its own sorted sublist
@@ -24,7 +25,7 @@ export class MergeSortRanking extends AbstractRankingAlgorithm {
     this.rankedItems = [];
   }
 
-  getNextComparison(): [string, string] | null {
+  getNextComparison(): [RankedItem, RankedItem] | null {
     // If we're in the middle of merging two sublists
     if (this.mergingLists) {
       const [leftIdx, rightIdx] = this.mergingLists;
@@ -72,7 +73,7 @@ export class MergeSortRanking extends AbstractRankingAlgorithm {
     return null;
   }
 
-  submitComparison(winner: string, loser: string): void {
+  submitComparison(winner: RankedItem, loser: RankedItem): void {
     if (!this.mergingLists) {
       throw new Error('No active merge operation');
     }
@@ -98,7 +99,7 @@ export class MergeSortRanking extends AbstractRankingAlgorithm {
     }
   }
 
-  private continueMerge(): [string, string] | null {
+  private continueMerge(): [RankedItem, RankedItem] | null {
     if (!this.mergingLists) return null;
 
     const [leftIdx, rightIdx] = this.mergingLists;
@@ -144,5 +145,44 @@ export class MergeSortRanking extends AbstractRankingAlgorithm {
 
     const maxSize = Math.max(...this.sublists.map(list => list.length));
     return `Merging sublists up to size ${maxSize}`;
+  }
+
+  getVisualState(): { items: RankedItem[]; comparing: [number, number] | null } {
+    // Flatten all sublists to get current positions
+    const allItems: RankedItem[] = [];
+    for (const sublist of this.sublists) {
+      allItems.push(...sublist);
+    }
+
+    // Find indices of currently comparing items
+    let comparing: [number, number] | null = null;
+    if (this.mergingLists) {
+      const [leftIdx, rightIdx] = this.mergingLists;
+      const leftList = this.sublists[leftIdx];
+      const rightList = this.sublists[rightIdx];
+
+      const leftPos = this.mergeIndices[leftIdx] || 0;
+      const rightPos = this.mergeIndices[rightIdx] || 0;
+
+      // Calculate global indices
+      let leftGlobalIndex = 0;
+      let rightGlobalIndex = 0;
+
+      // Find the global position of the left item
+      for (let i = 0; i < leftIdx; i++) {
+        leftGlobalIndex += this.sublists[i].length;
+      }
+      leftGlobalIndex += leftPos;
+
+      // Find the global position of the right item
+      for (let i = 0; i < rightIdx; i++) {
+        rightGlobalIndex += this.sublists[i].length;
+      }
+      rightGlobalIndex += rightPos;
+
+      comparing = [leftGlobalIndex, rightGlobalIndex];
+    }
+
+    return { items: allItems, comparing };
   }
 }

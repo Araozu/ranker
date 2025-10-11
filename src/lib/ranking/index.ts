@@ -1,14 +1,13 @@
 export * from './algorithms';
+export type { RankedItem } from './algorithms/RankingAlgorithm';
 
-import { InsertionSortRanking, MergeSortRanking } from './algorithms';
+import { MergeSortRanking } from './algorithms';
 
 /**
  * Factory function to create ranking algorithms by name
  */
-export function createRankingAlgorithm(name: 'insertion-sort' | 'merge-sort'): import('./algorithms').RankingAlgorithm {
+export function createRankingAlgorithm(name: 'merge-sort'): import('./algorithms').RankingAlgorithm {
   switch (name) {
-    case 'insertion-sort':
-      return new InsertionSortRanking();
     case 'merge-sort':
       return new MergeSortRanking();
     default:
@@ -20,7 +19,6 @@ export function createRankingAlgorithm(name: 'insertion-sort' | 'merge-sort'): i
  * Available ranking algorithms
  */
 export const RANKING_ALGORITHMS = {
-  'insertion-sort': 'Insertion Sort',
   'merge-sort': 'Merge Sort',
 } as const;
 

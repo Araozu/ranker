@@ -2,9 +2,10 @@
     import { createEventDispatcher } from 'svelte';
     import { Button } from "$lib/components/ui/button";
     import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card";
+    import type { RankedItem } from "$lib/ranking";
 
     interface Props {
-        items: Array<string>;
+        items: Array<RankedItem>;
     }
 
     let { items }: Props = $props();
@@ -27,9 +28,9 @@
     <CardContent>
         {#if items.length > 0}
             <ul class="space-y-2">
-                {#each items as item, index}
+                {#each items as item}
                     <li class="p-3 bg-muted rounded-md border">
-                        <span class="font-medium">{index + 1}.</span> {item}
+                        <span class="font-medium">{item[0]}.</span> {item[1]}
                     </li>
                 {/each}
             </ul>

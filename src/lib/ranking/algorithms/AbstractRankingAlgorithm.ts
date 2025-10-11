@@ -1,24 +1,24 @@
-import type { RankingAlgorithm } from './RankingAlgorithm';
+import type { RankingAlgorithm, RankedItem } from './RankingAlgorithm';
 import { shuffleArray } from '../../utils';
 
 /**
  * Abstract base class for ranking algorithms
  */
 export abstract class AbstractRankingAlgorithm implements RankingAlgorithm {
-  protected items: string[] = [];
-  protected rankedItems: string[] = [];
+  protected items: RankedItem[] = [];
+  protected rankedItems: RankedItem[] = [];
 
-  initialize(items: string[]): void {
+  initialize(items: RankedItem[]): void {
     // Shuffle the input items to randomize the comparison order
     this.items = shuffleArray([...items]);
     this.rankedItems = [];
     this.reset();
   }
 
-  abstract getNextComparison(): [string, string] | null;
-  abstract submitComparison(winner: string, loser: string): void;
+  abstract getNextComparison(): [RankedItem, RankedItem] | null;
+  abstract submitComparison(winner: RankedItem, loser: RankedItem): void;
 
-  getRankedItems(): string[] {
+  getRankedItems(): RankedItem[] {
     // Return items in reverse order so the most preferred (best) item appears first
     return [...this.rankedItems].reverse();
   }
@@ -32,6 +32,8 @@ export abstract class AbstractRankingAlgorithm implements RankingAlgorithm {
 
   abstract getCurrentState(): string;
 
+  abstract getVisualState(): { items: RankedItem[]; comparing: [number, number] | null };
+
   /**
    * Reset algorithm state - called during initialization
    */
@@ -40,13 +42,15 @@ export abstract class AbstractRankingAlgorithm implements RankingAlgorithm {
   /**
    * Validate that both items exist in the current item set
    */
-  protected validateComparison(winner: string, loser: string): void {
+  protected validateComparison(winner: RankedItem, loser: RankedItem): void {
     const allItems = [...this.items, ...this.rankedItems];
-    if (!allItems.includes(winner)) {
-      throw new Error(`Winner "${winner}" is not in the current item set`);
+    const itemExists = (item: RankedItem) => allItems.some(([letter, text]) => letter === item[0] && text === item[1]);
+
+    if (!itemExists(winner)) {
+      throw new Error(`Winner "${winner[0]}: ${winner[1]}" is not in the current item set`);
     }
-    if (!allItems.includes(loser)) {
-      throw new Error(`Loser "${loser}" is not in the current item set`);
+    if (!itemExists(loser)) {
+      throw new Error(`Loser "${loser[0]}: ${loser[1]}" is not in the current item set`);
     }
   }
 }

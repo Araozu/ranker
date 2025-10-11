@@ -4,10 +4,11 @@
     import Step2 from "./Step2.svelte";
     import Step3 from "./Step3.svelte";
     import { InsertionSortRanking, MergeSortRanking } from "$lib/ranking";
+    import type { RankedItem } from "$lib/ranking";
 
     let inputText = $state("");
-    let items = $state<Array<string>>([]);
-    let rankedItems = $state<Array<string>>([]);
+    let items = $state<Array<RankedItem>>([]);
+    let rankedItems = $state<Array<RankedItem>>([]);
     let currentStep = $state(1);
 
     // Initialize ranking algorithm
@@ -19,7 +20,12 @@
             .map(item => item.trim())
             .filter(item => item.length > 0);
 
-        items = processedItems;
+        // Create tuples with letters and text
+        items = processedItems.map((text, index) => {
+            const letter = String.fromCharCode(65 + index); // A, B, C, ...
+            return [letter, text] as RankedItem;
+        });
+
         currentStep = 2;
     }
 
@@ -31,7 +37,7 @@
         currentStep = 3;
     }
 
-    function handleRankingComplete(event: CustomEvent<{ rankedItems: string[] }>) {
+    function handleRankingComplete(event: CustomEvent<{ rankedItems: RankedItem[] }>) {
         rankedItems = event.detail.rankedItems;
         currentStep = 4; // Could add a final results screen
     }
