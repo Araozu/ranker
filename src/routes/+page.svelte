@@ -3,7 +3,7 @@
     import Step1 from "./Step1.svelte";
     import Step2 from "./Step2.svelte";
     import Step3 from "./Step3.svelte";
-    import { InsertionSortRanking, MergeSortRanking } from "$lib/ranking";
+    import { HeapSortRanking, InsertionSortRanking, MergeSortRanking } from "$lib/ranking";
     import type { RankedItem } from "$lib/ranking";
 
     let inputText = $state("");
