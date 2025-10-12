@@ -12,16 +12,22 @@ import type { RankedItem } from './RankingAlgorithm';
  */
 export class MergeSortRanking extends AbstractRankingAlgorithm {
   private sublists: RankedItem[][] = [];
-  private mergeIndices: number[] = []; // Current position in each sublist during merge
+  private leftPos: number = 0;
+  private rightPos: number = 0;
   private mergingLists: [number, number] | null = null; // Indices of sublists being merged
   private outputList: RankedItem[] = []; // Current merged result
+  private nextMergeIndex: number = 0; // Next pair to merge in current pass
+  private newSublists: RankedItem[][] = []; // Accumulates merged results for current pass
 
   protected reset(): void {
     // Start with each item as its own sorted sublist
     this.sublists = this.items.map(item => [item]);
-    this.mergeIndices = [];
+    this.leftPos = 0;
+    this.rightPos = 0;
     this.mergingLists = null;
     this.outputList = [];
+    this.nextMergeIndex = 0;
+    this.newSublists = [];
     this.rankedItems = [];
   }
 
@@ -32,40 +38,60 @@ export class MergeSortRanking extends AbstractRankingAlgorithm {
       const leftList = this.sublists[leftIdx];
       const rightList = this.sublists[rightIdx];
 
-      // Get current positions in each list
-      const leftPos = this.mergeIndices[leftIdx] || 0;
-      const rightPos = this.mergeIndices[rightIdx] || 0;
-
       // If we've exhausted one list, take from the other
-      if (leftPos >= leftList.length) {
-        this.outputList.push(rightList[rightPos]);
-        this.mergeIndices[rightIdx] = rightPos + 1;
-        return this.continueMerge();
+      if (this.leftPos >= leftList.length) {
+        // Take all remaining from right
+        while (this.rightPos < rightList.length) {
+          this.outputList.push(rightList[this.rightPos]);
+          this.rightPos++;
+        }
+        return this.finishMerge();
       }
-      if (rightPos >= rightList.length) {
-        this.outputList.push(leftList[leftPos]);
-        this.mergeIndices[leftIdx] = leftPos + 1;
-        return this.continueMerge();
+      if (this.rightPos >= rightList.length) {
+        // Take all remaining from left
+        while (this.leftPos < leftList.length) {
+          this.outputList.push(leftList[this.leftPos]);
+          this.leftPos++;
+        }
+        return this.finishMerge();
       }
 
       // Compare next elements from each list
-      return [leftList[leftPos], rightList[rightPos]];
+      return [leftList[this.leftPos], rightList[this.rightPos]];
     }
 
-    // Find the next pair of sublists to merge
-    for (let i = 0; i < this.sublists.length - 1; i += 2) {
-      if (this.sublists[i] && this.sublists[i + 1]) {
-        // Start merging these two sublists
-        this.mergingLists = [i, i + 1];
-        this.mergeIndices = [];
-        this.outputList = [];
-        return this.getNextComparison();
+    // Start next merge if available in current pass
+    if (this.nextMergeIndex < this.sublists.length - 1) {
+      // Start merging next pair
+      this.mergingLists = [this.nextMergeIndex, this.nextMergeIndex + 1];
+      this.leftPos = 0;
+      this.rightPos = 0;
+      this.outputList = [];
+      return this.getNextComparison();
+    } else if (this.nextMergeIndex === this.sublists.length - 1) {
+      // Odd sublist left over - carry it forward without merging
+      this.newSublists.push(this.sublists[this.nextMergeIndex]);
+      this.nextMergeIndex += 2;
+    }
+
+    // Current pass is complete, start next pass
+    if (this.newSublists.length > 0) {
+      this.sublists = this.newSublists;
+      this.newSublists = [];
+      this.nextMergeIndex = 0;
+      
+      // Check if we're done
+      if (this.sublists.length === 1) {
+        this.rankedItems = [...this.sublists[0]];
+        return null;
       }
+      
+      // Start next pass
+      return this.getNextComparison();
     }
 
-    // If we get here, all merging is complete
+    // All merging is complete
     if (this.sublists.length === 1) {
-      // Final sorted list is complete
       this.rankedItems = [...this.sublists[0]];
       return null;
     }
@@ -84,43 +110,27 @@ export class MergeSortRanking extends AbstractRankingAlgorithm {
     const leftList = this.sublists[leftIdx];
     const rightList = this.sublists[rightIdx];
 
-    const leftPos = this.mergeIndices[leftIdx] || 0;
-    const rightPos = this.mergeIndices[rightIdx] || 0;
-
     // Determine which list the winner came from and add it to output
-    if (winner === leftList[leftPos]) {
+    if (winner === leftList[this.leftPos]) {
       this.outputList.push(winner);
-      this.mergeIndices[leftIdx] = leftPos + 1;
-    } else if (winner === rightList[rightPos]) {
+      this.leftPos++;
+    } else if (winner === rightList[this.rightPos]) {
       this.outputList.push(winner);
-      this.mergeIndices[rightIdx] = rightPos + 1;
+      this.rightPos++;
     } else {
       throw new Error('Winner not found in current merge positions');
     }
   }
 
-  private continueMerge(): [RankedItem, RankedItem] | null {
+  private finishMerge(): [RankedItem, RankedItem] | null {
     if (!this.mergingLists) return null;
 
-    const [leftIdx, rightIdx] = this.mergingLists;
-    const leftList = this.sublists[leftIdx];
-    const rightList = this.sublists[rightIdx];
+    // Add the merged result to new sublists
+    this.newSublists.push(this.outputList);
+    this.mergingLists = null;
+    this.nextMergeIndex += 2;
 
-    const leftPos = this.mergeIndices[leftIdx] || 0;
-    const rightPos = this.mergeIndices[rightIdx] || 0;
-
-    // Check if merge is complete
-    if (leftPos >= leftList.length && rightPos >= rightList.length) {
-      // Replace the two sublists with the merged result
-      this.sublists.splice(leftIdx, 2, this.outputList);
-      this.mergingLists = null;
-      this.mergeIndices = [];
-
-      // Continue with next merge
-      return this.getNextComparison();
-    }
-
-    // Continue current merge
+    // Continue with next merge
     return this.getNextComparison();
   }
 
@@ -137,10 +147,10 @@ export class MergeSortRanking extends AbstractRankingAlgorithm {
       const [leftIdx, rightIdx] = this.mergingLists;
       const leftSize = this.sublists[leftIdx].length;
       const rightSize = this.sublists[rightIdx].length;
-      const leftPos = this.mergeIndices[leftIdx] || 0;
-      const rightPos = this.mergeIndices[rightIdx] || 0;
+      const merged = this.leftPos + this.rightPos;
+      const total = leftSize + rightSize;
 
-      return `Merging sublists of size ${leftSize} and ${rightSize} (position ${leftPos + rightPos + 1}/${leftSize + rightSize})`;
+      return `Merging sublists of size ${leftSize} and ${rightSize} (position ${merged}/${total})`;
     }
 
     const maxSize = Math.max(...this.sublists.map(list => list.length));
@@ -148,10 +158,40 @@ export class MergeSortRanking extends AbstractRankingAlgorithm {
   }
 
   getVisualState(): { items: RankedItem[]; comparing: [number, number] | null } {
-    // Flatten all sublists to get current positions
+    // Build the visual representation showing merged output and remaining sublists
     const allItems: RankedItem[] = [];
-    for (const sublist of this.sublists) {
+    
+    // Add already merged sublists from current pass
+    for (const sublist of this.newSublists) {
       allItems.push(...sublist);
+    }
+    
+    // Add the current output being built
+    allItems.push(...this.outputList);
+    
+    // Add remaining unmerged sublists in the current pass
+    if (this.mergingLists) {
+      const [leftIdx, rightIdx] = this.mergingLists;
+      
+      // Add remaining items from left list being merged
+      for (let i = this.leftPos; i < this.sublists[leftIdx].length; i++) {
+        allItems.push(this.sublists[leftIdx][i]);
+      }
+      
+      // Add remaining items from right list being merged
+      for (let i = this.rightPos; i < this.sublists[rightIdx].length; i++) {
+        allItems.push(this.sublists[rightIdx][i]);
+      }
+      
+      // Add any sublists after the ones being merged
+      for (let i = rightIdx + 1; i < this.sublists.length; i++) {
+        allItems.push(...this.sublists[i]);
+      }
+    } else {
+      // Not currently merging, add all remaining sublists
+      for (let i = this.nextMergeIndex; i < this.sublists.length; i++) {
+        allItems.push(...this.sublists[i]);
+      }
     }
 
     // Find indices of currently comparing items
@@ -161,26 +201,25 @@ export class MergeSortRanking extends AbstractRankingAlgorithm {
       const leftList = this.sublists[leftIdx];
       const rightList = this.sublists[rightIdx];
 
-      const leftPos = this.mergeIndices[leftIdx] || 0;
-      const rightPos = this.mergeIndices[rightIdx] || 0;
-
-      // Calculate global indices
-      let leftGlobalIndex = 0;
-      let rightGlobalIndex = 0;
-
-      // Find the global position of the left item
-      for (let i = 0; i < leftIdx; i++) {
-        leftGlobalIndex += this.sublists[i].length;
+      if (this.leftPos < leftList.length && this.rightPos < rightList.length) {
+        // Calculate global indices in the visual display
+        let baseIndex = 0;
+        
+        // Add already merged sublists
+        for (const sublist of this.newSublists) {
+          baseIndex += sublist.length;
+        }
+        
+        // Add current output
+        baseIndex += this.outputList.length;
+        
+        // Left item is first in remaining
+        const leftGlobalIndex = baseIndex;
+        // Right item is after all remaining left items
+        const rightGlobalIndex = baseIndex + (leftList.length - this.leftPos);
+        
+        comparing = [leftGlobalIndex, rightGlobalIndex];
       }
-      leftGlobalIndex += leftPos;
-
-      // Find the global position of the right item
-      for (let i = 0; i < rightIdx; i++) {
-        rightGlobalIndex += this.sublists[i].length;
-      }
-      rightGlobalIndex += rightPos;
-
-      comparing = [leftGlobalIndex, rightGlobalIndex];
     }
 
     return { items: allItems, comparing };
