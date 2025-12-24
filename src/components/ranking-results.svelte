@@ -52,10 +52,10 @@
 							#{item.rank}
 						{/if}
 					</span>
-					<div class="flex-1 space-y-1">
-						<div class="flex items-center justify-between">
-							<span class="font-medium">{item.name}</span>
-							<span class="text-sm text-muted-foreground">{item.weight} pts</span>
+					<div class="flex-1 min-w-0 space-y-1">
+						<div class="flex items-center justify-between gap-2">
+							<span class="font-medium truncate" title={item.name}>{item.name}</span>
+							<span class="text-sm text-muted-foreground whitespace-nowrap">{item.weight} pts</span>
 						</div>
 						<div class="w-full bg-secondary rounded-full h-2">
 							<div

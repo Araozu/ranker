@@ -30,7 +30,7 @@
 
 	<p class="text-center text-lg text-muted-foreground">Which one do you prefer?</p>
 
-	<div class="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
+	<div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-center">
 		<Card.Root
 			class="cursor-pointer transition-all hover:border-primary hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
 			onclick={() => onPick(leftId, rightId)}
@@ -43,8 +43,10 @@
 			</Card.Content>
 		</Card.Root>
 
-		<div class="flex flex-col items-center gap-2">
+		<div class="flex items-center justify-center gap-4 md:flex-col md:gap-2">
+			<div class="h-px flex-1 bg-border md:hidden"></div>
 			<span class="text-2xl font-bold text-muted-foreground">VS</span>
+			<div class="h-px flex-1 bg-border md:hidden"></div>
 		</div>
 
 		<Card.Root
