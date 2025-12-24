@@ -2,11 +2,11 @@
 	let { n, text }: { n: string; text: string } = $props();
 </script>
 
-<div class="border-2 border-primary/25 rounded-sm flex items-center p-2 gap-4">
+<div class="flex items-center gap-4">
 	<span
-		class="inline-flex h-8 w-8 rounded-full bg-primary text-background font-display font-bold items-center justify-center"
+		class="inline-flex h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground font-display font-bold items-center justify-center text-lg shadow-sm"
 	>
 		{n}
 	</span>
-	<div>{text}</div>
+	<h3 class="text-xl font-semibold tracking-tight">{text}</h3>
 </div>
